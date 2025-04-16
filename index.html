@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Retro Jersey Order</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      max-width: 500px;
+      margin: auto;
+      overflow-x: hidden;
+    }
+    .form-container {
+      position: relative;
+      overflow-y: auto;
+      max-height: 80vh;
+    }
+    input, textarea {
+      width: 100%;
+      margin-bottom: 1em;
+      padding: 0.5em;
+      font-size: 1em;
+      box-sizing: border-box;
+    }
+    canvas {
+      display: block;
+      margin: 2em auto;
+      border: 1px solid #ccc;
+      max-width: 100%;
+    }
+    .preview {
+      text-align: center;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 0.75em 1.5em;
+      border: none;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-top: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1 style="font-size: 1.8em; font-weight: bold;">Retro Jersey Order</h1>
+  <div class="form-container">
+    <input type="text" id="title" placeholder="Jersey Title" />
+    <input type="text" id="quantity" placeholder="Quantity" />
+    <input type="text" id="size" placeholder="Size" />
+    <input type="text" id="name" placeholder="Name" />
+    <input type="text" id="number" placeholder="Number" />
+    <input type="text" id="version" placeholder="Version" />
+
+    <label>Upload Jersey Images:</label>
+    <input type="file" id="jerseyImages" multiple accept="image/*" />
+
+    <label>Upload Patch Images:</label>
+    <input type="file" id="patchImages" multiple accept="image/*" />
+
+    <input type="text" id="patchText" placeholder="Patch Description" />
+
+    <button onclick="generateImage()">Generate Order Image</button>
+  </div>
+
+  <div class="preview">
+    <canvas id="outputCanvas" width="1080" height="1920"></canvas>
+    <a id="downloadLink" style="display:none;" download="jersey_order.png">
+      <button>⬇️ Download Image</button>
+    </a>
+  </div>
+
+  <script>
+    async function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function renderImages(ctx, files, startX, startY, maxPerRow, maxCount, isPatch = false) {
+      let x = startX;
+      let y = startY;
+      const maxImgWidth = 480;
+      const maxImgHeight = isPatch ? 240 : 480;
+      let count = 0;
+
+      for (const file of files) {
+        if (count >= maxCount) break;
+        const img = await loadImage(file);
+        const ratio = Math.min(maxImgWidth / img.width, maxImgHeight / img.height);
+        const w = img.width * ratio;
+        const h = img.height * ratio;
+
+        ctx.drawImage(img, x, y, w, h);
+
+        x += maxImgWidth + 40;
+        count++;
+        if (count % maxPerRow === 0) {
+          x = startX;
+          y += maxImgHeight + 40;
+        }
+      }
+      return y + maxImgHeight + 40;
+    }
+
+    async function generateImage() {
+      const canvas = document.getElementById("outputCanvas");
+      const ctx = canvas.getContext("2d");
+
+      ctx.imageSmoothingQuality = "high";
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "black";
+      ctx.font = "48px sans-serif";
+
+      let y = 80;
+      const lineHeight = 60;
+
+      const fields = [
+        `${document.getElementById("title").value}`,
+        `Quantity: ${document.getElementById("quantity").value}`,
+        `Size: ${document.getElementById("size").value}`,
+        `Name: ${document.getElementById("name").value}`,
+        `Number: ${document.getElementById("number").value}`,
+        `Version: ${document.getElementById("version").value}`,
+      ];
+
+      fields.forEach((text) => {
+        ctx.fillText(text, 40, y);
+        y += lineHeight;
+      });
+
+      const jerseyFiles = document.getElementById("jerseyImages").files;
+      const patchFiles = document.getElementById("patchImages").files;
+
+      if (jerseyFiles.length > 4) alert("⚠️ Only the first 4 jersey images will be displayed.");
+      if (patchFiles.length > 2) alert("⚠️ Only the first 2 patch images will be displayed.");
+
+      y = await renderImages(ctx, jerseyFiles, 40, y + 40, 2, 4);
+      y = await renderImages(ctx, patchFiles, 40, y, 2, 2, true);
+
+      const patchText = document.getElementById("patchText").value;
+      if (patchText) {
+        ctx.font = "40px sans-serif";
+        ctx.fillStyle = "black";
+        ctx.fillText(`Patch: ${patchText}`, 40, y);
+      }
+
+      const dataUrl = canvas.toDataURL("image/png");
+      const link = document.getElementById("downloadLink");
+      link.href = dataUrl;
+      link.style.display = "inline-block";
+    }
+  </script>
+</body>
+</html>

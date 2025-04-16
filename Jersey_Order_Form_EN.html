@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Jersey Order Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    input, label {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 1px solid #000;
+      width: 100%;
+    }
+    #generate {
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+    #generate:hover {
+      background-color: #0056b3;
+    }
+    #download {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+    #download:hover {
+      background-color: #1e7e34;
+    }
+  </style>
+</head>
+<body>
+  <h2>Jersey Order Form</h2>
+
+  <label>Title</label>
+  <input type="text" id="title" placeholder="e.g. RETRO 1998 BRAZIL HOME">
+
+  <label>Size</label>
+  <input type="text" id="size">
+
+  <label>Name</label>
+  <input type="text" id="name">
+
+  <label>Number</label>
+  <input type="text" id="number">
+
+  <label>Version</label>
+  <input type="text" id="version">
+
+  <label>Jersey Images</label>
+  <input type="file" id="jerseyImgs" accept="image/*" multiple>
+
+  <label>Sleeve Patch Images</label>
+  <input type="file" id="patchImgs" accept="image/*" multiple>
+
+  <button id="generate">Generate Image</button>
+  <button id="download">Download Image</button>
+
+  <canvas id="output" width="500" height="1000"></canvas>
+
+  <script>
+    const canvas = document.getElementById('output');
+    const ctx = canvas.getContext('2d');
+
+    function drawImageFromFile(file, x, y, width, height, callback) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          ctx.drawImage(img, x, y, width, height);
+          if (callback) callback();
+        }
+        img.src = e.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('generate').onclick = () => {
+      const title = document.getElementById('title').value;
+      const size = document.getElementById('size').value;
+      const name = document.getElementById('name').value;
+      const number = document.getElementById('number').value;
+      const version = document.getElementById('version').value;
+      const jerseyFiles = document.getElementById('jerseyImgs').files;
+      const patchFiles = document.getElementById('patchImgs').files;
+
+      // Clear canvas
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'black';
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText(title, 20, 40);
+
+      ctx.font = '16px Arial';
+      ctx.fillText(`Size: ${size}`, 20, 80);
+      ctx.fillText(`Name: ${name}`, 20, 110);
+      ctx.fillText(`Number: ${number}`, 20, 140);
+      ctx.fillText(`Version: ${version}`, 20, 170);
+
+      let yOffset = 200;
+      const drawJerseyImages = (index = 0) => {
+        if (index < jerseyFiles.length) {
+          drawImageFromFile(jerseyFiles[index], 20, yOffset, 200, 200, () => {
+            yOffset += 210;
+            drawJerseyImages(index + 1);
+          });
+        } else {
+          drawPatchImages();
+        }
+      };
+
+      const drawPatchImages = (index = 0) => {
+        let xOffset = 240;
+        for (let i = 0; i < patchFiles.length; i++) {
+          drawImageFromFile(patchFiles[i], xOffset, 200 + (i * 110), 100, 100);
+        }
+      };
+
+      drawJerseyImages();
+    };
+
+    document.getElementById('download').onclick = () => {
+      const link = document.createElement('a');
+      link.download = 'jersey_order.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+  </script>
+</body>
+</html>
